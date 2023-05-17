@@ -5,7 +5,7 @@ class Field {
         field = '0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000',
         ships = []
     ) {
-        this.fields = field.split(',');
+        this.fields = field.split(this._cellSeparator);
         this.ships = ships;
     }
 
@@ -15,12 +15,12 @@ class Field {
             position.length !== 2 ||
             position.replaceAll(/\D/g, '').length !== 2
         ) {
-            throw new this.errorClass('invalid position');
+            throw new this._errorClass('invalid position');
         }
 
         const cellValue = this._getCellField(position);
         if (!this.possibleShots.includes(cellValue)) {
-            throw new this.errorClass('Stupid shot');
+            throw new this._errorClass('Stupid shot');
         }
         const cellStatus =
             cellValue === FieldEnum.ship ? FieldEnum.hit : FieldEnum.missed;
@@ -49,36 +49,87 @@ class Field {
         this.ships = ships;
     }
 
-    /**
-     *
-     * @param {string[]} ships
-     */
-    isShipDestroyedByCell(ship) {
-        return ship
-            .split(',')
-            .every((shipCell) => this._getCellField(shipCell) === FieldEnum.hit);
+    validateShips(ships) {
+        const newShips = ships.map((ship) => this._isValidShip(ship));
+        if (newShips.find((el) => el === false)) {
+        }
+        if (this._isShipsIntersect(newShips)) {
+            console.log(Field.createFieldWithShips(newShips)._toPrint());
+            console.log(newShips);
+            throw new this._errorClass('Ships Intersect');
+        }
+        const fleet = newShips.reduce((acc, ship) => {
+            const shipLength = ship.split(',').length;
+            acc[shipLength] = acc[shipLength] + 1 || 1;
+            return acc;
+        }, {});
+        for (const shipLength in fleet) {
+            if (fleet[shipLength] !== this._shipsFleet[shipLength])
+                throw new this._errorClass('Invalid fleet', shipLength);
+        }
+        return newShips;
     }
 
-    findShipByCell(cell) {
-        return this.ships.find((ship) => ship.includes(cell));
+    _isValidShip(ship) {
+        if (!this._shipCheckRegexp.test(ship))
+            throw new this._errorClass('Invalid ship', ship);
+        const cells = ship.split(',');
+        if (cells.length > 1) {
+            let direction = null;
+            if (new Set(cells.map((v) => v[0])).size === 1) direction = 1;
+            if (new Set(cells.map((v) => v[1])).size === 1) direction = 0;
+            if (direction === null) throw new this._errorClass('Invalid ship', ship);
+            cells.sort((a, b) => (a[direction] > b[direction] ? 1 : -1));
+            this._isShipComponentFollows(cells, direction);
+            return cells.join(',');
+        } else {
+            return ship;
+        }
     }
 
-    prepareFieldToOponnent() {
-        return this.fieldToString().replaceAll(FieldEnum.ship, FieldEnum.free);
+    _isShipComponentFollows(ship, direction) {
+        for (let i = 0; i < ship.length - 1; i++) {
+            if (ship[i + 1][direction] - ship[i][direction] !== 1)
+                throw new this._errorClass('Ship component not follow', ship);
+        }
     }
 
-    isAllShipDestroyed() {
-        return !this.fieldToString().includes(FieldEnum.ship);
+    _isShipsIntersect = (ships) => {
+        const cellsSet = new Set(this._getAreaAroundShip(ships[0]));
+        for (let shipIndex = 1; shipIndex < ships.length; shipIndex++) {
+            const ship = ships[shipIndex];
+            const shipCells = ship.split(',');
+            if (shipCells.some((cell) => cellsSet.has(cell)))
+                throw new this._errorClass(shipCells.join(','));
+            this._getAreaAroundShip(ship).forEach((cell) => cellsSet.add(cell));
+        }
+        return false;
+    };
+
+    _getAreaAroundShip(ship) {
+        const shipCells = ship.split(',');
+        const firstCell = shipCells[0];
+        const lastCell = shipCells[shipCells.length - 1];
+        const firstFormatedCell = `${Number(firstCell[0]) - 1 === -1 ? 0 : Number(firstCell[0]) - 1
+            }${Number(firstCell[1]) - 1 === -1 ? 0 : Number(firstCell[1]) - 1}`;
+        const lastFormatedCell = `${Number(lastCell[0]) + 1 === 10 ? 9 : Number(lastCell[0]) + 1
+            }${Number(lastCell[1]) + 1 === 10 ? 9 : Number(lastCell[1]) + 1}`;
+        const horizontal = Number(lastFormatedCell[0] - firstFormatedCell[0]);
+        const vertical = Number(lastFormatedCell[1] - firstFormatedCell[1]);
+        return new Array(horizontal + 1)
+            .fill(null)
+            .map((v, i) => `${Number(firstFormatedCell[0]) + i}`)
+            .map((v) =>
+                new Array(vertical + 1)
+                    .fill(null)
+                    .map((_, i) => `${v}${Number(firstFormatedCell[1]) + i}`)
+            )
+            .flat();
     }
 
     fieldToString() {
         return this.fields.join(',');
     }
-
-    _prepareDataToJson() {
-        return { field: this.fieldToString(), ships: this.ships };
-    }
-
     static createFieldWithShips(ships) {
         const field = new Field();
         field.placeShips(ships);
@@ -87,6 +138,6 @@ class Field {
 }
 Field.prototype.possibleShots = [FieldEnum.free, FieldEnum.ship];
 Field.prototype._cellSeparator = ',';
-Field.prototype.errorClass = Error
+Field.prototype._errorClass = Error
 
 module.exports = Field;
