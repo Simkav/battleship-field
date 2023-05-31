@@ -7,11 +7,7 @@ function generateRandomShips(field, shipsFleetSettings) {
         let shipPlaced = false;
         let counter = 0
         while (!shipPlaced) {
-            if (counter > 100) {
-                console.log(counter)
-                console.log(field.ships)
-                throw new Error("Can't create random field")
-            }
+            if (counter > 100) throw new Error("Can't create random field")
             try {
                 const randomOrientation = Boolean(getRandomInt(0, 1))
                 const shipCoordinates = getRandomShip(length, randomOrientation).join(',')
