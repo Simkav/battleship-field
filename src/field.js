@@ -49,7 +49,7 @@ class Field {
         this.ships = ships;
     }
 
-    validateShips(ships) {
+    validateShips(ships, shipsFleetSettings) {
         const newShips = ships.map((ship) => this._isValidShip(ship));
         if (newShips.find((el) => el === false)) {
         }
@@ -64,8 +64,7 @@ class Field {
             return acc;
         }, {});
         for (const shipLength in fleet) {
-            if (fleet[shipLength] !== this._shipsFleet[shipLength])
-                throw new this._errorClass('Invalid fleet', shipLength);
+            if (fleet[shipLength] !== shipsFleetSettings[shipLength]) throw new this._errorClass('Invalid fleet', shipLength);
         }
         return newShips;
     }
