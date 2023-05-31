@@ -138,5 +138,8 @@ class Field {
 Field.prototype.possibleShots = [FieldEnum.free, FieldEnum.ship];
 Field.prototype._cellSeparator = ',';
 Field.prototype._errorClass = Error
+Field.prototype._shipCheckRegexp = new RegExp(
+    '([0123456789]{2},)*[0123456789]{2}'
+);
 
 module.exports = Field;
