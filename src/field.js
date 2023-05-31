@@ -28,6 +28,11 @@ class Field {
         return cellStatus;
     }
 
+    _flush() {
+        this.fields = '0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000,0000000000'.split(this._cellSeparator)
+        this.ships = []
+    }
+
     _getCellField(position) {
         return this.fields[position[1]][position[0]];
     }
